@@ -9,19 +9,9 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
+	"strings"
 )
-
-var CURRENT_WEATHER_REQ = []string{"Lat", "Lon"}
-var ONE_CALL_REQ = []string{"Lat", "Lon"}
-var WEATHER_MAPS_REQ = []string{"Layer", "Z", "X", "Y"}
-
-var AVAILABLE_APIS = []string{"current", "one-call", "weathermaps"}
-
-var API_ENDPOINTS = map[string]string{
-	"current":     "https://api.openweathermap.org/data/2.5/weather",
-	"one-call":    "https://api.openweathermap.org/data/2.5/onecall",
-	"weathermaps": "https://tile.openweathermap.org/map/",
-}
 
 type CurrentWeatherQuery struct {
 	AppId string
@@ -60,92 +50,88 @@ type WeatherMapQuery struct {
 
 type Query interface {
 	checkRequirements() error
-	generateApiQuery() (string error)
+	generateApiQuery() (string, error)
 }
 
-func (q *CurrentWeatherQuery) checkRequirements() bool {
+func (q *CurrentWeatherQuery) checkRequirements() error {
 
 	requirements := []string{"AppId", "Lat", "Lon"}
-	valid := true
 
 	s := reflect.ValueOf(q).Elem()
 	for req := range requirements {
 		switch f := s.FieldByName(requirements[req]); {
 		case f.Kind() == reflect.Int:
 			if f.Int() == 0 {
-				valid = false
+				return errors.New(fmt.Sprintf("Required value not set: %v", requirements[req]))
 			}
 		case f.Kind() == reflect.String:
 			if f.String() == "" {
-				valid = false
+				return errors.New(fmt.Sprintf("Required value not set: %v", requirements[req]))
 			}
 		}
 	}
-	return valid
+	return nil
 
 }
 
-func (q *CurrentWeatherZipQuery) checkRequirements() bool {
+func (q *CurrentWeatherZipQuery) checkRequirements() error {
 
 	requirements := []string{"AppId", "Zip", "Code"}
-	valid := true
 
 	s := reflect.ValueOf(q).Elem()
 	for req := range requirements {
 		switch f := s.FieldByName(requirements[req]); {
 		case f.Kind() == reflect.Int:
 			if f.Int() == 0 {
-				valid = false
+				return errors.New(fmt.Sprintf("Required value not set: %v", requirements[req]))
 			}
 		case f.Kind() == reflect.String:
 			if f.String() == "" {
-				valid = false
+				return errors.New(fmt.Sprintf("Required value not set: %v", requirements[req]))
 			}
 		}
 	}
-	return valid
+	return nil
 }
 
-func (q *OneCallQuery) checkRequirements() bool {
+func (q *OneCallQuery) checkRequirements() error {
 
 	requirements := []string{"AppId", "Lat", "Lon"}
-	valid := true
 
 	s := reflect.ValueOf(q).Elem()
 	for req := range requirements {
 		switch f := s.FieldByName(requirements[req]); {
 		case f.Kind() == reflect.Int:
 			if f.Int() == 0 {
-				valid = false
+				return errors.New(fmt.Sprintf("Required value not set: %v", requirements[req]))
 			}
 		case f.Kind() == reflect.String:
 			if f.String() == "" {
-				valid = false
+				return errors.New(fmt.Sprintf("Required value not set: %v", requirements[req]))
 			}
 		}
 	}
-	return valid
+	return nil
 }
 
-func (q *WeatherMapQuery) checkRequirements() bool {
+func (q *WeatherMapQuery) checkRequirements() error {
 
 	requirements := []string{"AppId", "Layer", "Z", "X", "Y"}
-	valid := true
 
 	s := reflect.ValueOf(q).Elem()
 	for req := range requirements {
 		switch f := s.FieldByName(requirements[req]); {
 		case f.Kind() == reflect.Int:
 			if f.Int() == 0 {
-				valid = false
+				return errors.New(fmt.Sprintf("Required value not set: %v", requirements[req]))
 			}
 		case f.Kind() == reflect.String:
 			if f.String() == "" {
-				valid = false
+				return errors.New(fmt.Sprintf("Required value not set: %v", requirements[req]))
 			}
 		}
 	}
-	return valid
+	return nil
 }
 
 func (q *CurrentWeatherQuery) generateApiQuery() (string, error) {
@@ -154,22 +140,28 @@ func (q *CurrentWeatherQuery) generateApiQuery() (string, error) {
 	query := ""
 
 	s := reflect.ValueOf(q).Elem()
+	t := s.Type()
 	for i := 0; i < s.NumField(); i++ {
+
+		if t.Field(i).Name == "AppId" {
+			continue
+		}
+
 		switch f := s.Field(i); {
 		case f.Kind() == reflect.Int:
 			if f.Int() != 0 {
 				if query == "" {
-					query += fmt.Sprintf("?%v=%v", f.Type().Field(i).Name, f.Interface())
+					query += fmt.Sprintf("?%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
 				} else {
-					query += fmt.Sprintf("&%v=%v", f.Type().Field(i).Name, f.Interface())
+					query += fmt.Sprintf("&%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
 				}
 			}
 		case f.Kind() == reflect.String:
 			if f.String() != "" {
 				if query == "" {
-					query += fmt.Sprintf("?%v=%v", f.Type().Field(i).Name, f.Interface())
+					query += fmt.Sprintf("?%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
 				} else {
-					query += fmt.Sprintf("&%v=%v", f.Type().Field(i).Name, f.Interface())
+					query += fmt.Sprintf("&%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
 				}
 			}
 		}
@@ -179,30 +171,153 @@ func (q *CurrentWeatherQuery) generateApiQuery() (string, error) {
 	return (apiEndpoint + query), nil
 }
 
-func generateWeatherMapsQuery(client *Client) (string, error) {
+func (q *CurrentWeatherZipQuery) generateApiQuery() (string, error) {
 
-	query := fmt.Sprintf("/%v/%v/%v/%v.png?appid=%v", client.query.Layer, client.query.Z, client.query.X, client.query.Y, client.key)
+	apiEndpoint := "https://api.openweathermap.org/data/2.5/weather"
+	query := ""
 
-	return (API_ENDPOINTS["weathermaps"] + query), nil
+	s := reflect.ValueOf(q).Elem()
+	t := s.Type()
+	for i := 0; i < s.NumField(); i++ {
 
+		if t.Field(i).Name == "AppId" || t.Field(i).Name == "Code" {
+			continue
+		}
+
+		switch f := s.Field(i); {
+		case f.Kind() == reflect.Int:
+			if f.Int() != 0 {
+				if query == "" {
+					query += fmt.Sprintf("?%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
+				} else {
+					query += fmt.Sprintf("&%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
+				}
+			}
+		case f.Kind() == reflect.String:
+			if f.String() != "" {
+				if query == "" {
+					query += fmt.Sprintf("?%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
+				} else {
+					query += fmt.Sprintf("&%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
+				}
+			}
+		case f.Kind() == reflect.Uint32:
+			if f.Uint() != 0 {
+				if strings.ToLower(t.Field(i).Name) == "zip" {
+					if query == "" {
+						query += fmt.Sprintf("?%v=%v,%v", strings.ToLower(t.Field(i).Name), f.Interface(), q.Code)
+					} else {
+						query += fmt.Sprintf("&%v=%v,%v", strings.ToLower(t.Field(i).Name), f.Interface(), q.Code)
+					}
+				}
+			}
+		}
+	}
+
+	query += fmt.Sprintf("&appid=%s", q.AppId)
+	return (apiEndpoint + query), nil
 }
 
-func callEndpoint(apiEndpoint string) map[string]interface{} {
+func (q *OneCallQuery) generateApiQuery() (string, error) {
 
-	resp, err := http.Get(apiEndpoint)
+	apiEndpoint := "https://api.openweathermap.org/data/2.5/onecall"
+	query := ""
+
+	s := reflect.ValueOf(q).Elem()
+	t := s.Type()
+	for i := 0; i < s.NumField(); i++ {
+
+		if t.Field(i).Name == "AppId" {
+			continue
+		}
+
+		switch f := s.Field(i); {
+		case f.Kind() == reflect.Int:
+			if f.Int() != 0 {
+				if query == "" {
+					query += fmt.Sprintf("?%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
+				} else {
+					query += fmt.Sprintf("&%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
+				}
+			}
+		case f.Kind() == reflect.String:
+			if f.String() != "" {
+				if query == "" {
+					query += fmt.Sprintf("?%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
+				} else {
+					query += fmt.Sprintf("&%v=%v", strings.ToLower(t.Field(i).Name), f.Interface())
+				}
+			}
+		}
+	}
+
+	query += fmt.Sprintf("&appid=%s", q.AppId)
+	return (apiEndpoint + query), nil
+}
+
+func (q *WeatherMapQuery) generateApiQuery() (string, error) {
+
+	apiEndpoint := "https://tile.openweathermap.org/map/"
+	query := ""
+
+	if q.Layer != "" {
+		query += q.Layer
+	} else {
+		return "", errors.New("Layer not set")
+	}
+
+	if q.Z != 0 {
+		query += fmt.Sprintf("/%v", strconv.Itoa(int(q.Z)))
+	} else {
+		return "", errors.New("Zoom level not set")
+	}
+
+	if q.X != 0 {
+		query += fmt.Sprintf("/%v", strconv.Itoa(int(q.X)))
+	} else {
+		return "", errors.New("Number of X tiles not set")
+	}
+
+	if q.Y != 0 {
+		query += fmt.Sprintf("/%v", strconv.Itoa(int(q.Y)))
+	} else {
+		return "", errors.New("Number of Y tiles not set")
+	}
+
+	query += fmt.Sprintf(".png?appid=%s", q.AppId)
+
+	return (apiEndpoint + query), nil
+}
+
+func callEndpoint(q Query) (map[string]interface{}, error) {
+
+	if err := q.checkRequirements(); err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+
+	call, err := q.generateApiQuery()
 	if err != nil {
-		fmt.Println("error executing api call: ", err)
+		log.Fatal(err)
+		return nil, err
+	}
+
+	resp, err := http.Get(call)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("error reading response:", err)
+		log.Fatal(err)
+		return nil, err
 	}
 
 	var jsonData map[string]interface{}
 	json.Unmarshal([]byte(string(body)), &jsonData)
 
-	return jsonData
+	return jsonData, nil
 
 }
 
@@ -221,142 +336,5 @@ func callWeatherMapDownload(apiEndpoint string) error {
 	os.WriteFile("./download.png", buf, 0644)
 
 	return nil
-
-}
-
-func New(apiKey string) Client {
-
-	return Client{key: apiKey}
-
-}
-
-func SetLatLon(client *Client, Lat int, Lon int) {
-
-	client.query.Lat = Lat
-	client.query.Lon = Lon
-
-}
-
-func SetUnits(client *Client, unit string) error {
-
-	options := []string{"standard", "metric", "imperial"}
-
-	for m := range options {
-		if unit == options[m] {
-			client.query.Units = unit
-			return nil
-		}
-	}
-
-	return errors.New("Unsupported unit")
-
-}
-
-func SetLang(client *Client, Language string) {
-	/* Provide Language code, examples:
-	en: English
-	es, sp: Spanish
-	ru: Russian
-	*/
-	client.query.Lang = Language
-}
-
-func SetCount(client *Client, Count uint) {
-
-	client.query.Count = Count
-
-}
-
-func SetExclude(client *Client, Excludes []string) error {
-
-	options := []string{"current", "minutely", "hourly", "daily", "alerts"}
-
-	if len(Excludes) > 0 {
-		valid := false
-		for Exclude := range Excludes {
-			for opt := range options {
-				if options[opt] == Excludes[Exclude] {
-					valid = true
-				}
-			}
-			if !valid {
-				return errors.New("Invalid Exclude provided")
-			}
-		}
-	} else {
-		return errors.New("At least one exludes should be provided")
-	}
-
-	return nil
-}
-
-func CallCurrentWeather(client *Client) map[string]interface{} {
-
-	// Check that provided client meets requirements
-	if err := checkRequirements(client, CURRENT_WEATHER_REQ); err != nil {
-		log.Fatal("Provided client does not meet requirements:", err)
-	}
-
-	querystring, err := generateApiQuery(client, "current")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	jsonResp := callEndpoint(querystring)
-
-	return jsonResp
-}
-
-func CallCurrentWeatherByZip(client *Client, zip int, code string) map[string]interface{} {
-
-	// Check that provided client meets requirements
-	if err := checkRequirements(client, CURRENT_WEATHER_REQ); err != nil {
-		log.Fatal("Provided client does not meet requirements:", err)
-	}
-
-	querystring, err := generateApiQuery(client, "current")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	jsonResp := callEndpoint(querystring)
-
-	return jsonResp
-}
-
-func CallOneCall(client *Client) map[string]interface{} {
-
-	if err := checkRequirements(client, ONE_CALL_REQ); err != nil {
-		log.Fatal("Provided client does not meet requirements:", err)
-	}
-
-	querystring, err := generateApiQuery(client, "one-call")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	jsonResp := callEndpoint(querystring)
-
-	return jsonResp
-}
-
-func CallWeatherMap(client *Client) {
-
-	if err := checkRequirements(client, WEATHER_MAPS_REQ); err != nil {
-		log.Fatal("Provided client does not meet requirements:", err)
-	}
-
-	querystring, err := generateWeatherMapsQuery(client)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(querystring)
-
-	err = callWeatherMapDownload(querystring)
-
-	if err != nil {
-		log.Fatal("Error downloading file:", err)
-	}
 
 }
