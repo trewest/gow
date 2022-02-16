@@ -114,6 +114,10 @@ func checkRequirements(q Query) error {
 			if f.Int() == 0 {
 				return fmt.Errorf("required value not set: %v", requirements[req])
 			}
+		case f.Kind() == reflect.Uint:
+			if f.Uint() == 0 {
+				return fmt.Errorf("required value not set: %v", requirements[req])
+			}
 		case f.Kind() == reflect.Float32:
 			if f.Float() == 0.0 {
 				return fmt.Errorf("required value not set: %v", requirements[req])
