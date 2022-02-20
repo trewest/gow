@@ -302,12 +302,12 @@ func queryConstructor(val url.Values, q Query) (string, error) {
 
 }
 
-func callEndpoint(q interface{}) (map[string]interface{}, error) {
+func CallEndpoint(q interface{}) (map[string]interface{}, error) {
 
 	query, ok := q.(Query)
 	if !ok {
 		log.Fatal(ok)
-		return nil, errors.New("Query was not passed to callEndpoint")
+		return nil, errors.New("Query was not passed to CallEndpoint")
 	}
 
 	call, err := query.generateApiQuery()
