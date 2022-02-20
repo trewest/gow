@@ -103,7 +103,7 @@ func (q *CurrentWeatherIdQuery) getRequirements() []string { return []string{"Ap
 
 func (q *OneCallQuery) getRequirements() []string { return []string{"AppId", "Lat", "Lon"} }
 
-func checkRequirements(q Query) error {
+func CheckRequirements(q Query) error {
 
 	requirements := q.getRequirements()
 

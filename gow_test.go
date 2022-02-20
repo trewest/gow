@@ -7,7 +7,7 @@ import (
 
 func TestCurrentWeather(t *testing.T) {
 
-	weatherQuery := CurrentWeatherQuery{AppId: os.Getenv("KEY"), Lat: 39.9042, Lon: 116.4074, Validator: checkRequirements}
+	weatherQuery := CurrentWeatherQuery{AppId: os.Getenv("KEY"), Lat: 39.9042, Lon: 116.4074, Validator: CheckRequirements}
 	_, err := callEndpoint(&weatherQuery)
 	if err != nil {
 		t.Errorf("Test failed: %v\n", err)
@@ -16,7 +16,7 @@ func TestCurrentWeather(t *testing.T) {
 
 func TestCurrentWeatherByZip(t *testing.T) {
 
-	weatherQuery := CurrentWeatherZipQuery{AppId: os.Getenv("KEY"), Code: "us", Zip: 27560, Validator: checkRequirements}
+	weatherQuery := CurrentWeatherZipQuery{AppId: os.Getenv("KEY"), Code: "us", Zip: 27560, Validator: CheckRequirements}
 	_, err := callEndpoint(&weatherQuery)
 	if err != nil {
 		t.Errorf("Test failed: %v\n", err)
@@ -25,7 +25,7 @@ func TestCurrentWeatherByZip(t *testing.T) {
 
 func TestCurrentWeatherCityName(t *testing.T) {
 
-	weatherQuery := CurrentWeatherCityNameQuery{AppId: os.Getenv("KEY"), CityName: "raleigh", StateCode: "nc", CountryCode: "us", Validator: checkRequirements}
+	weatherQuery := CurrentWeatherCityNameQuery{AppId: os.Getenv("KEY"), CityName: "raleigh", StateCode: "nc", CountryCode: "us", Validator: CheckRequirements}
 	_, err := callEndpoint(&weatherQuery)
 	if err != nil {
 		t.Errorf("Test failed: %v\n", err)
@@ -35,7 +35,7 @@ func TestCurrentWeatherCityName(t *testing.T) {
 
 func TestCurrentWeatherId(t *testing.T) {
 
-	weatherQuery := CurrentWeatherIdQuery{AppId: os.Getenv("KEY"), Id: 4487042, Units: "imperial", Validator: checkRequirements}
+	weatherQuery := CurrentWeatherIdQuery{AppId: os.Getenv("KEY"), Id: 4487042, Units: "imperial", Validator: CheckRequirements}
 	_, err := callEndpoint(&weatherQuery)
 	if err != nil {
 		t.Errorf("Test failed: %v\n", err)
@@ -45,7 +45,7 @@ func TestCurrentWeatherId(t *testing.T) {
 
 func TestOneCall(t *testing.T) {
 
-	weatherQuery := OneCallQuery{AppId: os.Getenv("KEY"), Lat: 35, Lon: 139, Validator: checkRequirements}
+	weatherQuery := OneCallQuery{AppId: os.Getenv("KEY"), Lat: 35, Lon: 139, Validator: CheckRequirements}
 	_, err := callEndpoint(&weatherQuery)
 	if err != nil {
 		t.Errorf("Test failed: %v\n", err)
